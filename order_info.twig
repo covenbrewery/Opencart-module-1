@@ -1,0 +1,941 @@
+{{ header }}
+
+<div id="account-order" class="container uni2fix-order">
+
+	{% if success %}
+		<div class="alert alert-success alert-dismissible uni2fix-animate" style="--d: 60ms"><i class="fa fa-check-circle"></i> {{ success }}
+			<button type="button" class="close" data-dismiss="alert">&times;</button>
+		</div>
+	{% endif %}
+	{% if error_warning %}
+		<div class="alert alert-danger alert-dismissible uni2fix-animate" style="--d: 60ms"><i class="fa fa-exclamation-circle"></i> {{ error_warning }}
+			<button type="button" class="close" data-dismiss="alert">&times;</button>
+		</div>
+	{% endif %}
+
+	<div class="row">
+		{{ column_left }}
+
+		{% if column_left and column_right %}
+			{% set class = 'col-sm-4 col-md-6 col-lg-6 col-xxl-12' %}
+		{% elseif column_left or column_right %}
+			{% set class = 'col-sm-8 col-md-9 col-lg-9 col-xxl-16' %}
+		{% else %}
+			{% set class = 'col-sm-12' %}
+		{% endif %}
+
+		<div id="content" class="{{ class }}">
+			{# =========================
+			   HERO / BREADCRUMBS (in content column)
+			   ========================= #}
+			{% set _menu_expanded = menu_expanded|default(false) %}
+			{% set current_status = histories ? (histories|last).status : '' %}
+
+			<div class="breadcrumb-h1 uni2fix-hero uni2fix-animate" style="--d: 0ms">
+				<ul class="breadcrumb uni2fix-breadcrumb">
+					{% for key, breadcrumb in breadcrumbs %}
+						{% if key + 1 < breadcrumbs|length %}
+							<li><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+						{% elseif (hide_last_breadcrumb is not defined) or (not hide_last_breadcrumb) or (hide_last_breadcrumb and key == 1) %}
+							<li>{{ breadcrumb.text }}</li>
+						{% endif %}
+					{% endfor %}
+				</ul>
+
+				<div class="uni2fix-hero__row">
+					<div class="uni2fix-hero__title">
+						<div class="uni2fix-hero__icon" aria-hidden="true"><i class="fa fa-shopping-bag"></i></div>
+
+						{# Title + meta in ONE line (wraps on small screens) #}
+						<div class="uni2fix-headline">
+							<h1 class="uni2fix-h1">{{ text_order_detail }} <span class="uni2fix-id">#{{ order_id }}</span></h1>
+							<div class="uni2fix-sub">
+								<span><i class="fa fa-calendar-o" aria-hidden="true"></i> {{ date_added }}</span>
+								{% if current_status %}
+									<span class="uni2fix-dot">•</span>
+									<span class="uni2fix-pill"><i class="fa fa-circle" aria-hidden="true"></i> {{ current_status }}</span>
+								{% endif %}
+							</div>
+						</div>
+					</div>
+
+					<div class="uni2fix-hero__actions">
+						<button type="button" class="btn btn-default uni2fix-btn" onclick="uni2fixPrint()" title="Печать">
+							<i class="fa fa-print"></i>
+							<span class="hidden-xs">Печать</span>
+						</button>
+						<a href="{{ continue }}" class="btn btn-primary uni2fix-btn" title="Вернуться">
+							<i class="fa fa-arrow-left"></i>
+							<span class="hidden-xs">Вернуться</span>
+						</a>
+					</div>
+				</div>
+			</div>
+
+			{{ content_top }}
+
+			<div class="uni2fix-grid">
+
+				{# --- SUMMARY --- #}
+				<div class="uni2fix-card uni2fix-animate" style="--d: 120ms">
+					<div class="uni2fix-card__head">
+						<div class="uni2fix-card__title"><i class="fa fa-info-circle"></i> {{ text_order_detail }}</div>
+					</div>
+					<div class="uni2fix-card__body">
+						<div class="uni2fix-kv">
+							{% if invoice_no %}
+								<div class="uni2fix-kv__item">
+									<div class="uni2fix-kv__k"><i class="fa fa-file-text-o"></i> {{ text_invoice_no }}</div>
+									<div class="uni2fix-kv__v">{{ invoice_no }}</div>
+								</div>
+							{% endif %}
+							{% if payment_method %}
+								<div class="uni2fix-kv__item">
+									<div class="uni2fix-kv__k"><i class="fa fa-credit-card"></i> {{ text_payment_method }}</div>
+									<div class="uni2fix-kv__v">{{ payment_method }}</div>
+								</div>
+							{% endif %}
+							{% if shipping_method %}
+								<div class="uni2fix-kv__item">
+									<div class="uni2fix-kv__k"><i class="fa fa-truck"></i> {{ text_shipping_method }}</div>
+									<div class="uni2fix-kv__v">{{ shipping_method }}</div>
+								</div>
+							{% endif %}
+						</div>
+					</div>
+				</div>
+
+				{# --- ADDRESSES --- #}
+				{% set _pickup = unicheckout_pickup|default('') %}
+				{% if _pickup is empty %}
+					{% if payment_address or shipping_address %}
+						<div class="uni2fix-card uni2fix-animate" style="--d: 170ms">
+							<div class="uni2fix-card__head">
+								<div class="uni2fix-card__title"><i class="fa fa-map-marker"></i> {{ text_payment_address }} / {{ text_shipping_address }}</div>
+							</div>
+							<div class="uni2fix-card__body">
+								<div class="uni2fix-two">
+									{% if payment_address and (payment_address != shipping_address) %}
+										<div class="uni2fix-mini">
+											<div class="uni2fix-mini__title"><i class="fa fa-credit-card"></i> {{ text_payment_address }}</div>
+											<div class="uni2fix-mini__text">{{ payment_address }}</div>
+										</div>
+									{% endif %}
+									{% if shipping_address %}
+										<div class="uni2fix-mini">
+											<div class="uni2fix-mini__title"><i class="fa fa-truck"></i> {{ text_shipping_address }}</div>
+											<div class="uni2fix-mini__text">{{ shipping_address }}</div>
+										</div>
+									{% endif %}
+								</div>
+							</div>
+						</div>
+					{% endif %}
+				{% endif %}
+
+				{# --- HISTORY (above products) --- #}
+				{% if histories %}
+					<div class="uni2fix-card uni2fix-animate" style="--d: 210ms">
+						<div class="uni2fix-card__head">
+							<div class="uni2fix-card__title"><i class="fa fa-history"></i> {{ text_history }}</div>
+						</div>
+						<div class="uni2fix-card__body">
+							<div class="uni2fix-timeline">
+								{% for history in histories|reverse %}
+									<div class="uni2fix-time">
+										<div class="uni2fix-time__dot" aria-hidden="true"></div>
+
+										<div class="uni2fix-time__box">
+											<div class="uni2fix-time__top">
+												<div class="uni2fix-time__date"><i class="fa fa-calendar"></i> {{ history.date_added }}</div>
+												<div class="uni2fix-time__status">{{ history.status }}</div>
+											</div>
+
+											{% if history.comment %}
+												<div class="uni2fix-time__commentbox">
+													<div class="uni2fix-time__commentttl"><i class="fa fa-commenting"></i> {{ column_comment }}</div>
+													<div class="uni2fix-time__commenttxt">{{ history.comment }}</div>
+												</div>
+											{% endif %}
+										</div>
+									</div>
+								{% endfor %}
+							</div>
+						</div>
+					</div>
+				{% endif %}
+
+				{# --- PRODUCTS --- #}
+				<div class="uni2fix-card uni2fix-animate" style="--d: 260ms">
+					<div class="uni2fix-card__head">
+						<div class="uni2fix-card__title"><i class="fa fa-cubes"></i> Состав заказа</div>
+						<div class="uni2fix-card__hint">{{ text_order_detail }} #{{ order_id }}</div>
+					</div>
+					<div class="uni2fix-card__body">
+						<div class="table-responsive uni2fix-scroll">
+							<table class="table uni2fix-table">
+								<thead>
+								<tr>
+									<th class="text-left uni2fix-th--thumb" style="width:72px"><i class="fa fa-camera" aria-hidden="true"></i></th>
+									<th class="text-left">{{ column_name }}</th>
+
+									<th class="text-left uni2fix-th--tech">
+										<span>Тех. Название</span>
+										<button type="button"
+												class="btn btn-link uni2fix-tech-toggle"
+												data-toggle="tooltip"
+												title="Показать полное UPC"
+												aria-label="Показать полное UPC">
+											<i class="fa fa-ellipsis-h"></i>
+										</button>
+									</th>
+
+									<th class="text-left">Декларация</th>
+									<th class="text-left">Штрихкод</th>
+
+									<th class="text-right hidden-xs">{{ column_price }}</th>
+									<th class="text-right">Кол-во</th>
+									<th class="text-right">{{ column_total }}</th>
+									<th class="text-right" style="width: 84px;"></th>
+								</tr>
+								</thead>
+								<tbody>
+								{% for product in products %}
+									<tr class="uni2fix-row">
+										<td class="text-left">
+											{% if product.thumb %}
+												<a href="javascript:void(0)"
+												   class="uni2fix-thumb"
+												   data-img="{{ product.image|e('html_attr') }}"
+												   title="{{ product.name|e('html_attr') }}">
+													<img src="{{ product.thumb }}" width="60" height="60" alt="{{ product.name|e('html_attr') }}">
+												</a>
+											{% else %}
+												<div class="uni2fix-thumb uni2fix-thumb--empty"><i class="fa fa-picture-o"></i></div>
+											{% endif %}
+										</td>
+
+										<td class="text-left">
+											<div class="uni2fix-prod">
+												<div class="uni2fix-prod__name">{{ product.name }}</div>
+												{% if product.sku %}
+													<div class="uni2fix-sku">SKU: {{ product.sku }}</div>
+												{% endif %}
+
+												{% if product.option %}
+													<div class="uni2fix-prod__opts">
+														{% for option in product.option %}
+															<div class="uni2fix-opt"><span class="uni2fix-opt__k">{{ option.name }}</span>: <span class="uni2fix-opt__v">{{ option.value }}</span></div>
+														{% endfor %}
+													</div>
+												{% endif %}
+											</div>
+										</td>
+
+										<td class="text-left">
+											<div class="uni2fix-tech"
+												 data-short="{{ (product.upc_short ?: '—')|e('html_attr') }}"
+												 data-full="{{ (product.upc_full ?: '—')|e('html_attr') }}">{{ product.upc_short ?: '—' }}</div>
+										</td>
+
+										<td class="text-left">
+											<div class="uni2fix-decl">
+												{% if product.isbn %}
+													{% if product.declaration_url %}
+														<a class="uni2fix-decl__link"
+														   href="{{ product.declaration_url }}"
+														   target="_blank"
+														   rel="noopener">
+															<i class="fa fa-file-pdf-o"></i> {{ product.isbn }}
+														</a>
+													{% else %}
+														<div class="uni2fix-decl__text">{{ product.isbn }}</div>
+														<button type="button"
+																class="btn btn-default btn-xs uni2fix-request"
+																data-kind="declaration_pdf"
+																data-order-id="{{ order_id }}"
+																data-order-product-id="{{ product.order_product_id }}"
+																data-toggle="tooltip"
+																title="Запросить PDF декларации">
+															<span class="uni2fix-request__icon"><i class="fa fa-cloud-download"></i></span>
+															<span class="uni2fix-request__spin"><i class="fa fa-spinner fa-spin"></i></span>
+															<span class="hidden-xs">Запросить PDF</span>
+														</button>
+													{% endif %}
+												{% else %}
+													<div class="uni2fix-decl__missing">отсутствует</div>
+													<button type="button"
+															class="btn btn-default btn-xs uni2fix-request"
+															data-kind="declaration_text"
+															data-order-id="{{ order_id }}"
+															data-order-product-id="{{ product.order_product_id }}"
+															data-toggle="tooltip"
+															title="Запросить декларацию">
+														<span class="uni2fix-request__icon"><i class="fa fa-paper-plane"></i></span>
+														<span class="uni2fix-request__spin"><i class="fa fa-spinner fa-spin"></i></span>
+														<span class="hidden-xs">Запросить</span>
+													</button>
+												{% endif %}
+											</div>
+										</td>
+
+										<td class="text-left">
+											{% if product.ean %}
+												<div class="uni2fix-bc">
+													<div class="uni2fix-bcbox">
+														<svg class="uni2fix-barcode" data-ean="{{ product.ean|e('html_attr') }}" aria-label="EAN {{ product.ean }}"></svg>
+													</div>
+</div>
+											{% else %}
+												<div class="uni2fix-decl__missing">отсутствует</div>
+												<button type="button"
+														class="btn btn-default btn-xs uni2fix-request"
+														data-kind="ean"
+														data-order-id="{{ order_id }}"
+														data-order-product-id="{{ product.order_product_id }}"
+														data-toggle="tooltip"
+														title="Запросить штрихкод (EAN)">
+													<span class="uni2fix-request__icon"><i class="fa fa-barcode"></i></span>
+													<span class="uni2fix-request__spin"><i class="fa fa-spinner fa-spin"></i></span>
+													<span class="hidden-xs">Запросить</span>
+												</button>
+											{% endif %}
+										</td>
+
+										<td class="text-right hidden-xs">{{ product.price }}</td>
+										<td class="text-right"><span class="uni2fix-qty">{{ product.quantity }}</span></td>
+										<td class="text-right"><strong>{{ product.total }}</strong></td>
+
+										<td class="text-right uni2fix-actions-cell">
+											<div class="uni2fix-actions">
+												{% if product.reorder %}
+													<button type="button"
+															onclick="location='{{ product.reorder }}'"
+															data-toggle="tooltip"
+															title="{{ button_reorder }}"
+															aria-label="{{ button_reorder }}"
+															class="btn btn-primary btn-sm uni2fix-iconbtn">
+														<i class="fa fa-shopping-cart"></i>
+													</button>
+												{% endif %}
+												{% if account_page is not defined or account_page.hide_return is not defined %}
+													<a href="{{ product.return }}"
+													   data-toggle="tooltip"
+													   title="{{ button_return }}"
+													   aria-label="{{ button_return }}"
+													   class="btn btn-default btn-sm uni2fix-iconbtn uni2fix-iconbtn--ghost">
+														<i class="fa fa-reply"></i>
+													</a>
+												{% endif %}
+											</div>
+										</td>
+									</tr>
+								{% endfor %}
+
+								{% for voucher in vouchers %}
+									<tr class="uni2fix-row">
+										<td class="text-left">
+											<div class="uni2fix-thumb uni2fix-thumb--empty" title="Voucher"><i class="fa fa-gift"></i></div>
+										</td>
+										<td class="text-left">
+											<div class="uni2fix-prod">
+												<div class="uni2fix-prod__name">{{ voucher.description }}</div>
+												<div class="uni2fix-prod__opts"><span class="uni2fix-pill"><i class="fa fa-gift"></i> Voucher</span></div>
+											</div>
+										</td>
+										<td class="text-left">—</td>
+										<td class="text-left">—</td>
+										<td class="text-left">—</td>
+										<td class="text-right hidden-xs">{{ voucher.amount }}</td>
+										<td class="text-right"><span class="uni2fix-qty">1</span></td>
+										<td class="text-right"><strong>{{ voucher.amount }}</strong></td>
+										<td class="text-right"></td>
+									</tr>
+								{% endfor %}
+								</tbody>
+							</table>
+						</div>
+
+						{# Totals #}
+
+						<div class="uni2fix-aftertable">
+							{% set stats = uni2fix_stats|default({}) %}
+							<div class="uni2fix-metrics">
+								<div class="uni2fix-metrics__head">
+									<div class="uni2fix-metrics__title"><i class="fa fa-calculator" aria-hidden="true"></i> Итоги по заказу</div>
+									<div class="uni2fix-metrics__hint">расчётные значения</div>
+								</div>
+								<div class="uni2fix-metrics__body">
+									<div class="uni2fix-mline">
+										<div class="uni2fix-mline__k">Вес / Объём заказа (фактический):</div>
+										<div class="uni2fix-mline__v">
+											{{ (stats.weight_kg|default(0))|number_format(2, '.', ' ') }} кг /
+											{{ (stats.volume_m3|default(0))|number_format(3, '.', ' ') }} м3
+										</div>
+									</div>
+
+									<div class="uni2fix-mline">
+										<div class="uni2fix-mline__k">Всего мест (коробок):</div>
+										<div class="uni2fix-mline__v">
+											{% if stats.boxes_approx|default(false) %}
+												~{{ stats.boxes|default(0) }}
+												<button type="button" class="btn btn-link uni2fix-info" data-toggle="tooltip" title="Количество мест рассчитано приблизительно: часть товаров может быть упакована совместно, фактическое количество коробок может отличаться.">
+													<i class="fa fa-info-circle"></i>
+												</button>
+											{% else %}
+												{{ stats.boxes|default(0) }}
+											{% endif %}
+											&nbsp;шт.
+										</div>
+									</div>
+
+									<div class="uni2fix-mline">
+										<div class="uni2fix-mline__k">Общий литраж:</div>
+										<div class="uni2fix-mline__v">{{ (stats.liters|default(0))|number_format(2, '.', ' ') }} л</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="uni2fix-totals">
+								{% for total in totals %}
+									<div class="uni2fix-total">
+										<div class="uni2fix-total__k">{{ total.title }}</div>
+										<div class="uni2fix-total__v">{{ total.text }}</div>
+									</div>
+								{% endfor %}
+							</div>
+						</div>
+
+</div>
+				</div>
+
+				{# --- COMMENT (order comment) --- #}
+				{% if comment %}
+					<div class="uni2fix-card uni2fix-animate" style="--d: 310ms">
+						<div class="uni2fix-card__head">
+							<div class="uni2fix-card__title"><i class="fa fa-sticky-note-o"></i> {{ text_comment }}</div>
+						</div>
+						<div class="uni2fix-card__body">
+							<div class="uni2fix-commentbox">
+								<div class="uni2fix-commentbox__ico" aria-hidden="true"><i class="fa fa-quote-left"></i></div>
+								<div class="uni2fix-commentbox__text">{{ comment }}</div>
+							</div>
+						</div>
+					</div>
+				{% endif %}
+
+			</div>
+
+			{{ content_bottom }}
+		</div>
+
+		{{ column_right }}
+	</div>
+
+	<div id="uni2fix-toast" class="uni2fix-toast" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+{# Image modal #}
+<div class="modal fade" id="uni2fixImgModal" tabindex="-1" role="dialog" aria-hidden="true">
+	<div class="modal-dialog" role="document" style="max-width: 920px;">
+		<div class="modal-content uni2fix-modal">
+			<div class="modal-body uni2fix-modal__body">
+				<button type="button" class="close uni2fix-modal__close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<img id="uni2fixImgModalImg" class="uni2fix-modal__img" src="" alt="">
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+	/* =========================
+	   UniShop2 Fix: Order Info
+	   Scoped styles (light UI)
+	   ========================= */
+	.uni2fix-order{position:relative}
+	.uni2fix-order:before{content:'';position:absolute;left:-12px;right:-12px;top:20px;height:220px;background:radial-gradient(80% 100% at 20% 0%,rgba(59,130,246,.10),rgba(255,255,255,0)),radial-gradient(70% 100% at 80% 10%,rgba(16,185,129,.10),rgba(255,255,255,0));border-radius:24px;pointer-events:none}
+
+	/* HERO */
+	.uni2fix-hero{position:relative;margin-top:10px;margin-bottom:14px;padding:14px 14px 10px;border-radius:18px;background:rgba(255,255,255,.85);backdrop-filter:saturate(140%) blur(6px);box-shadow:0 10px 30px rgba(0,0,0,.06);border:6px solid rgba(0,0,0,.04);clear:both}
+	.uni2fix-breadcrumb{margin:0 0 10px;padding:0;background:transparent}
+	.uni2fix-hero__row{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+	.uni2fix-hero__title{display:flex;gap:12px;align-items:center;min-width:260px}
+	.uni2fix-hero__icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(59,130,246,.18),rgba(16,185,129,.14));color:#1f2937;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04)}
+
+	/* Title + meta in one line */
+	.uni2fix-headline{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+	.uni2fix-h1{margin:0;font-size:22px;line-height:1.2;display:inline-flex;align-items:center;gap:8px}
+	.uni2fix-id{display:inline-block;padding:2px 10px;border-radius:999px;background:rgba(59,130,246,.10)}
+	.uni2fix-sub{margin:0;display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;color:rgba(0,0,0,.62);font-size:13px}
+	.uni2fix-pill{display:inline-flex;gap:6px;align-items:center;padding:3px 10px;border-radius:999px;background:rgba(16,185,129,.12);color:rgba(0,0,0,.72)}
+	.uni2fix-pill i{font-size:9px;opacity:.65}
+	.uni2fix-dot{opacity:.55}
+
+	.uni2fix-hero__actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+	.uni2fix-btn{border-radius:12px;box-shadow:0 6px 14px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.06);transition:transform .15s ease, box-shadow .15s ease}
+	.uni2fix-btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(0,0,0,.09)}
+
+	/* Layout */
+	.uni2fix-grid{display:grid;grid-template-columns:1fr;gap:14px}
+	@media (min-width: 992px){.uni2fix-grid{grid-template-columns:1fr}}
+
+	/* Cards */
+	.uni2fix-card{border-radius:18px;background:#fff;box-shadow:0 10px 28px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.05);overflow:hidden}
+	.uni2fix-card__head{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(180deg,rgba(249,250,251,1),rgba(255,255,255,1))}
+	.uni2fix-card__title{font-weight:700;color:rgba(0,0,0,.80);display:flex;align-items:center;gap:10px}
+	.uni2fix-card__title i{opacity:.8}
+	.uni2fix-card__hint{font-size:12px;color:rgba(0,0,0,.48)}
+	.uni2fix-card__body{padding:14px 16px}
+
+	/* KV */
+	.uni2fix-kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+	.uni2fix-kv__item{padding:12px;border-radius:14px;background:rgba(59,130,246,.06);border:1px dashed rgba(59,130,246,.18)}
+	.uni2fix-kv__k{font-size:12px;color:rgba(0,0,0,.55);display:flex;gap:8px;align-items:center}
+	.uni2fix-kv__v{margin-top:4px;font-weight:700;color:rgba(0,0,0,.80)}
+
+	/* Addresses */
+	.uni2fix-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+	.uni2fix-mini{padding:12px;border-radius:14px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.14)}
+	.uni2fix-mini__title{font-weight:700;display:flex;gap:8px;align-items:center;margin-bottom:6px;color:rgba(0,0,0,.78)}
+	.uni2fix-mini__text{color:rgba(0,0,0,.70);line-height:1.45}
+
+	/* Tables */
+	.uni2fix-table{margin:0;min-width:1120px}
+	.uni2fix-table>thead>tr>th{border-bottom:3px solid rgba(0,0,0,.06);color:black;font-weight:700;white-space:nowrap;vertical-align:middle}
+	.uni2fix-table td{vertical-align:middle !important}
+	.uni2fix-row>td{border-top:1px solid rgba(0,0,0,.06)}
+	.uni2fix-row:hover{background:rgba(59,130,246,.04)}
+	.uni2fix-prod__name{font-weight:700;color:rgba(0,0,0,.84)}
+	.uni2fix-prod__opts{margin-top:6px;color:rgba(0,0,0,.62);font-size:12px}
+	.uni2fix-opt{padding:2px 0}
+	.uni2fix-opt__k{opacity:.85}
+
+	/* SKU line */
+	.uni2fix-sku{margin-top:6px;font-size:12px;color:rgba(0,0,0,.48)}
+
+	/* Qty: plain */
+	.uni2fix-qty{font-weight:800;color:rgba(0,0,0,.82)}
+
+	/* Thumb */
+	.uni2fix-thumb{display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:14px;overflow:hidden;background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.06);box-shadow:0 10px 22px rgba(0,0,0,.06);transition:transform .15s ease, box-shadow .15s ease}
+	.uni2fix-thumb img{width:60px;height:60px;object-fit:cover;display:block}
+	.uni2fix-thumb:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(0,0,0,.10)}
+	.uni2fix-thumb--empty{color:rgba(0,0,0,.40)}
+	.uni2fix-thumb--empty i{font-size:18px}
+
+	/* Tech */
+	.uni2fix-th--tech{min-width:210px}
+	.uni2fix-tech{font-size:12px;line-height:1.35;color:rgba(0,0,0,.72);background:rgba(59,130,246,.05);border:1px dashed rgba(59,130,246,.18);border-radius:12px;padding:10px 10px;max-width:320px}
+	.uni2fix-tech.is-full{background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.20)}
+	.uni2fix-tech-toggle{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;margin-left:8px;padding:0;border-radius:999px;background:linear-gradient(135deg,rgba(59,130,246,.16),rgba(16,185,129,.12));border:1px solid rgba(0,0,0,.06);box-shadow:0 10px 22px rgba(0,0,0,.08);color:rgba(0,0,0,.72);transition:transform .15s ease, box-shadow .15s ease, filter .15s ease}
+	.uni2fix-tech-toggle i{font-size:14px}
+	.uni2fix-tech-toggle:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(0,0,0,.12);filter:saturate(115%);color:rgba(0,0,0,.86);text-decoration:none}
+	.uni2fix-tech-toggle:focus{text-decoration: none; outline:none;box-shadow:0 0 0 3px rgba(59,130,246,.18), 0 14px 28px rgba(0,0,0,.12)}
+
+	/* Declaration / request */
+	.uni2fix-decl{min-width:230px}
+	.uni2fix-decl__link{display:inline-flex;gap:8px;align-items:flex-start;color:rgba(0,0,0,.78);text-decoration:none}
+	.uni2fix-decl__link i{color:rgba(220,38,38,.90);margin-top:2px}
+	.uni2fix-decl__link:hover{text-decoration:underline}
+	.uni2fix-decl__text{font-size:12px;color:rgba(0,0,0,.72);background:rgba(0,0,0,.03);border:1px solid rgba(0,0,0,.06);border-radius:12px;padding:10px}
+	.uni2fix-decl__missing{font-size:12px;color:rgba(0,0,0,.48);margin-bottom:8px}
+	.uni2fix-request{border-radius:12px;border:1px solid rgba(0,0,0,.08);box-shadow:0 8px 18px rgba(0,0,0,.06);transition:transform .15s ease, box-shadow .15s ease}
+	.uni2fix-request:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(0,0,0,.10)}
+	.uni2fix-request__spin{display:none}
+	.uni2fix-request.is-loading .uni2fix-request__icon{display:none}
+	.uni2fix-request.is-loading .uni2fix-request__spin{display:inline-block}
+	.uni2fix-sent{display:inline-flex;gap:8px;align-items:center;font-size:12px;color:rgba(16,185,129,.95);font-weight:700}
+	.uni2fix-sent i{font-size:14px}
+
+	/* Barcode */
+	.uni2fix-bc{min-width:170px}
+	.uni2fix-bcbox{width:150px;height:80px;border-radius:14px;overflow:hidden;background:#fff;border:1px solid rgba(0,0,0,.06);box-shadow:0 10px 22px rgba(0,0,0,.06);padding:6px}
+	.uni2fix-bcbox svg{width:100%;height:100%;display:block}
+	.uni2fix-bcnum{margin-top:6px;font-size:12px;color:rgba(0,0,0,.52);text-align:center;font-family:monospace}
+
+	/* Actions */
+	.uni2fix-actions-cell{white-space:nowrap}
+	.uni2fix-actions{display:inline-flex;gap:8px;align-items:center;justify-content:flex-end}
+	.uni2fix-iconbtn{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;border:1px solid rgba(0,0,0,.06);box-shadow:0 8px 18px rgba(0,0,0,.06);transition:transform .15s ease, box-shadow .15s ease, filter .15s ease;padding:0}
+	.uni2fix-iconbtn:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(0,0,0,.10);filter:saturate(110%)}
+	.uni2fix-iconbtn--ghost{background:rgba(255,255,255,1)}
+
+	/* Creative scrollbar */
+	.uni2fix-scroll{scrollbar-width:thin;scrollbar-color:rgba(59,130,246,.55) rgba(0,0,0,.06)}
+	.uni2fix-scroll::-webkit-scrollbar{height:10px;width:10px}
+	.uni2fix-scroll::-webkit-scrollbar-track{background:rgba(0,0,0,.04);border-radius:999px}
+	.uni2fix-scroll::-webkit-scrollbar-thumb{background:linear-gradient(90deg,rgba(59,130,246,.55),rgba(16,185,129,.55));border-radius:999px;border:2px solid rgba(255,255,255,.80)}
+	.uni2fix-scroll::-webkit-scrollbar-thumb:hover{background:linear-gradient(90deg,rgba(59,130,246,.75),rgba(16,185,129,.75))}
+
+	/* After-table layout */
+	.uni2fix-aftertable{margin-top:14px;padding-top:12px;border-top:1px solid rgba(0,0,0,.06);display:flex;gap:14px;align-items:stretch;justify-content:space-between;flex-wrap:wrap}
+	.uni2fix-metrics{flex:1;min-width:280px;border-radius:16px;background:linear-gradient(180deg,rgba(249,250,251,1),rgba(255,255,255,1));border:1px solid rgba(0,0,0,.06);box-shadow:0 10px 22px rgba(0,0,0,.06);overflow:hidden}
+	.uni2fix-metrics__head{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(0,0,0,.06)}
+	.uni2fix-metrics__title{font-weight:800;color:rgba(0,0,0,.82);display:flex;gap:8px;align-items:center}
+	.uni2fix-metrics__hint{font-size:12px;color:rgba(0,0,0,.48)}
+	.uni2fix-metrics__body{padding:12px 14px;display:grid;gap:10px}
+	.uni2fix-mline{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+	.uni2fix-mline__k{color:rgba(0,0,0,.60);font-size:13px;line-height:1.35}
+	.uni2fix-mline__v{font-weight:800;color:rgba(0,0,0,.84);text-align:right}
+	.uni2fix-info{padding:0;margin-left:6px;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.06);color:rgba(0,0,0,.55);box-shadow:0 8px 18px rgba(0,0,0,.06)}
+	.uni2fix-info:hover{color:rgba(0,0,0,.80);text-decoration:none;background:rgba(0,0,0,.06)}
+	/* Totals */
+	.uni2fix-totals{min-width:280px;flex:0 0 auto;display:grid;gap:8px}
+	.uni2fix-total{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.03)}
+	.uni2fix-total__k{color:rgba(0,0,0,.60)}
+	.uni2fix-total__v{font-weight:800;color:rgba(0,0,0,.82)}
+
+
+	/* Timeline */
+	.uni2fix-timeline{position:relative}
+	.uni2fix-timeline:before { content: ''; position: absolute; left: 10px; top: 10px; bottom: 10px; width: 3px; background: linear-gradient(180deg, rgb(59 130 246 / 49%), rgb(16 185 129 / 58%)); }
+	.uni2fix-time{position:relative;padding:4px 0 10px 28px}
+	.uni2fix-time__dot{position:absolute;left:22px;top:24px;width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,rgba(59,130,246,.92),rgba(16,185,129,.84));border:2px solid rgba(255,255,255,.95);box-shadow:0 10px 22px rgba(0,0,0,.10)}
+	.uni2fix-time__dot:before { content: ''; position: absolute; left: -13px; top: 50%; transform: translateY(-50%); width: 14px; height: 3px; background: linear-gradient(90deg, rgb(59 130 246 / 50%), rgba(59, 130, 246, .62)); border-radius: 2px; }
+	.uni2fix-time__box{padding:12px;border-radius:14px;background:#fff;border:1px solid rgba(0,0,0,.06);box-shadow:0 8px 22px rgba(0,0,0,.05)}
+	.uni2fix-time__top { display: flex; gap: 10px; align-items: center; justify-content: flex-end; flex-wrap: nowrap; flex-direction: row-reverse; }
+	.uni2fix-time__date{color:rgba(0,0,0,.55);font-size:12px;display:flex;gap:8px;align-items:center}
+	.uni2fix-time__status{font-weight:800;color:rgba(0,0,0,.82);background:rgba(59,130,246,.08);padding:4px 10px;border-radius:999px}
+	.uni2fix-time__commentbox{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.16)}
+	.uni2fix-time__commentttl{font-size:12px;color:rgba(0,0,0,.55);display:flex;gap:8px;align-items:center;margin-bottom:4px}
+	.uni2fix-time__commenttxt{color:rgba(0,0,0,.72);line-height:1.45}
+
+	/* Order comment box */
+	.uni2fix-commentbox{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:14px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.16)}
+	.uni2fix-commentbox__ico{width:34px;height:34px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,.12);color:rgba(0,0,0,.72)}
+	.uni2fix-commentbox__text{color:rgba(0,0,0,.74);line-height:1.55;padding: 6px 0px 0px 0px;}
+
+	/* Reveal animation */
+	.uni2fix-animate{opacity:0;transform:translateY(12px);transition:opacity .55s ease, transform .55s ease;transition-delay:var(--d,0ms)}
+	.uni2fix-ready .uni2fix-animate{opacity:1;transform:translateY(0)}
+
+	/* Toast */
+	.uni2fix-toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:9999;max-width:92vw;padding:10px 14px;border-radius:999px;background:rgba(17,24,39,.92);color:#fff;box-shadow:0 18px 40px rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease}
+	.uni2fix-toast.uni2fix-toast--show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+
+	/* Modal */
+	.uni2fix-modal{border-radius:18px;overflow:hidden}
+	/* keep 5% top/bottom gaps and always fit image */
+	#uni2fixImgModal .modal-dialog{margin:5vh auto;max-width:920px;}
+	.uni2fix-modal__body{position:relative;background:#fff;display:flex;align-items:center;justify-content:center;height:90vh;padding:5vh 2vw;box-sizing:border-box;overflow:hidden}
+	.uni2fix-modal__img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block}
+	/* close button with white circle (override bootstrap .close) */
+	.uni2fix-modal__close{position:absolute;right:12px;top:12px;z-index:2;width:40px;height:40px;border-radius:999px;display:flex;align-items:center;justify-content:center;opacity:1;color:#111827;background:rgba(255,255,255,.98) !important;border:1px solid rgba(0,0,0,.08);box-shadow:0 12px 26px rgba(0,0,0,.12);text-shadow:none}
+	.uni2fix-modal__close:hover{opacity:1;transform:translateY(-1px)}
+	.uni2fix-modal__close.close{background:rgba(255,255,255,.98) !important;opacity:1}
+	.uni2fix-modal__close span{font-size:24px;line-height:1;}
+
+
+	/* Print (for fallback window.print) */
+	@media print{
+		body{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important}
+		#column-left, #column-right{display:none !important}
+		#content{width:100% !important}
+		.uni2fix-hero__actions, #uni2fix-toast, .breadcrumb, #uni2fixImgModal{display:none !important}
+		.uni2fix-order:before{display:none !important}
+		.uni2fix-card{box-shadow:none !important;border:1px solid #ddd !important}
+		.uni2fix-table{min-width:auto !important}
+	}
+</style>
+
+<script>
+(function(){
+	var root = document.querySelector('.uni2fix-order');
+	if(!root) return;
+
+	// Start reveal animation on next tick
+	setTimeout(function(){ root.classList.add('uni2fix-ready'); }, 40);
+
+	function toast(msg){
+		var el = document.getElementById('uni2fix-toast');
+		if(!el) return;
+		el.textContent = msg;
+		el.classList.add('uni2fix-toast--show');
+		clearTimeout(el._t);
+		el._t = setTimeout(function(){ el.classList.remove('uni2fix-toast--show'); }, 1600);
+	}
+
+	// Ensure tooltips work (Bootstrap/jQuery)
+	function ensureTooltips(){
+		if(window.jQuery && typeof window.jQuery.fn.tooltip === 'function'){
+			window.jQuery(function($){
+				$('[data-toggle="tooltip"]').tooltip();
+			});
+		}
+	}
+	ensureTooltips();
+
+	// Image modal
+	function openImgModal(src, alt){
+		if(!src) return;
+		var img = document.getElementById('uni2fixImgModalImg');
+		if(img){
+			img.src = src;
+			img.alt = alt || '';
+		}
+		if(window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.modal === 'function'){
+			window.jQuery('#uni2fixImgModal').modal('show');
+		} else {
+			window.open(src, '_blank');
+		}
+	}
+	root.addEventListener('click', function(e){
+		var a = e.target.closest && e.target.closest('.uni2fix-thumb');
+		if(!a) return;
+		e.preventDefault();
+		openImgModal(a.getAttribute('data-img'), a.getAttribute('title') || '');
+	});
+
+	// Tech name toggle (all rows)
+	var techBtn = root.querySelector('.uni2fix-tech-toggle');
+	var techIsFull = false;
+	function setTechMode(full){
+		techIsFull = !!full;
+		var nodes = root.querySelectorAll('.uni2fix-tech');
+		for(var i=0;i<nodes.length;i++){
+			var n = nodes[i];
+			var t = full ? (n.getAttribute('data-full') || '—') : (n.getAttribute('data-short') || '—');
+			n.textContent = t;
+			if(full) n.classList.add('is-full'); else n.classList.remove('is-full');
+		}
+		if(techBtn){
+			techBtn.setAttribute('title', full ? 'Показать короткое название' : 'Показать полное UPC');
+			techBtn.setAttribute('data-original-title', full ? 'Показать короткое название' : 'Показать полное UPC');
+			if(window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.tooltip === 'function'){
+				window.jQuery(techBtn).tooltip('fixTitle');
+			}
+		}
+	}
+	if(techBtn){
+		techBtn.addEventListener('click', function(e){
+			e.preventDefault();
+			setTechMode(!techIsFull);
+		});
+	}
+
+	// Request buttons (send email to admin)
+	var requestUrl = '{{ uni2fix_requestdoc|default("") }}';
+	function postForm(url, dataObj){
+		var body = [];
+		for (var k in dataObj){
+			if(!dataObj.hasOwnProperty(k)) continue;
+			body.push(encodeURIComponent(k) + '=' + encodeURIComponent(dataObj[k]));
+		}
+		body = body.join('&');
+
+		if(window.fetch){
+			return fetch(url, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+				credentials: 'same-origin',
+				body: body
+			}).then(function(r){ return r.json(); });
+		}
+
+		// jQuery fallback
+		if(window.jQuery){
+			return new Promise(function(resolve){
+				window.jQuery.post(url, body, function(res){ resolve(res); }, 'json');
+			});
+		}
+
+		return Promise.reject(new Error('no_transport'));
+	}
+
+	root.addEventListener('click', function(e){
+		var btn = e.target.closest && e.target.closest('.uni2fix-request');
+		if(!btn) return;
+		e.preventDefault();
+
+		if(!requestUrl){
+			toast('Маршрут запроса не настроен');
+			return;
+		}
+
+		if(btn.classList.contains('is-loading')) return;
+
+		var kind = btn.getAttribute('data-kind') || '';
+		var orderId = btn.getAttribute('data-order-id') || '';
+		var opId = btn.getAttribute('data-order-product-id') || '';
+
+		btn.classList.add('is-loading');
+		btn.disabled = true;
+
+		postForm(requestUrl, { order_id: orderId, order_product_id: opId, kind: kind })
+			.then(function(json){
+				if(json && json.success){
+					var ok = document.createElement('span');
+					ok.className = 'uni2fix-sent';
+					ok.innerHTML = '<i class="fa fa-check-circle" aria-hidden="true"></i> Запрос отправлен';
+					btn.parentNode.insertBefore(ok, btn);
+					btn.parentNode.removeChild(btn);
+					toast('Запрос отправлен');
+				} else {
+					btn.classList.remove('is-loading');
+					btn.disabled = false;
+					toast((json && json.error) ? json.error : 'Ошибка отправки');
+				}
+			})
+			.catch(function(){
+				btn.classList.remove('is-loading');
+				btn.disabled = false;
+				toast('Ошибка отправки');
+			});
+	});
+
+	// Barcode renderer (EAN-13, no external libs)
+	function ean13Checksum(d12){
+		var sum = 0;
+		for(var i=0;i<12;i++){
+			var n = parseInt(d12.charAt(i), 10);
+			sum += (i % 2 === 0) ? n : (n * 3);
+		}
+		var mod = sum % 10;
+		return (mod === 0) ? '0' : String(10 - mod);
+	}
+	function normalizeEAN(v){
+		v = (v || '').replace(/\D/g, '');
+		if(v.length === 12){
+			v = v + ean13Checksum(v);
+		}
+		if(v.length !== 13) return '';
+		return v;
+	}
+	var L = {
+		0:'0001101',1:'0011001',2:'0010011',3:'0111101',4:'0100011',
+		5:'0110001',6:'0101111',7:'0111011',8:'0110111',9:'0001011'
+	};
+	var G = {
+		0:'0100111',1:'0110011',2:'0011011',3:'0100001',4:'0011101',
+		5:'0111001',6:'0000101',7:'0010001',8:'0001001',9:'0010111'
+	};
+	var R = {
+		0:'1110010',1:'1100110',2:'1101100',3:'1000010',4:'1011100',
+		5:'1001110',6:'1010000',7:'1000100',8:'1001000',9:'1110100'
+	};
+	var PARITY = {
+		0:'LLLLLL',1:'LLGLGG',2:'LLGGLG',3:'LLGGGL',4:'LGLLGG',
+		5:'LGGLLG',6:'LGGGLL',7:'LGLGLG',8:'LGLGGL',9:'LGGLGL'
+	};
+
+	function renderEAN13(svg, value){
+		var ean = normalizeEAN(value);
+		if(!ean) return;
+
+		var first = parseInt(ean.charAt(0),10);
+		var parity = PARITY[first] || 'LLLLLL';
+
+		var bits = '101'; // start guard
+		for(var i=1;i<=6;i++){
+			var d = ean.charAt(i);
+			bits += (parity.charAt(i-1) === 'G') ? G[d] : L[d];
+		}
+		bits += '01010'; // middle guard
+		for(var j=7;j<=12;j++){
+			var d2 = ean.charAt(j);
+			bits += R[d2];
+		}
+		bits += '101'; // end guard
+
+		// Build SVG (group bars into runs)
+		while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+		var w = 134, h = 65;
+		svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+		svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+		// background
+		var bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+		bg.setAttribute('x','0'); bg.setAttribute('y','0');
+		bg.setAttribute('width', String(w)); bg.setAttribute('height', String(h));
+		bg.setAttribute('fill','#ffffff');
+		svg.appendChild(bg);
+
+		var marginX = 10;
+		var topY = 8;
+		var barH = 36;
+		var moduleW = (w - marginX*2) / bits.length;
+
+		var x = marginX;
+		var run = 0;
+		for(var k=0;k<bits.length;k++){
+			var b = bits.charAt(k);
+			if(b === '1'){
+				run++;
+			} else {
+				if(run>0){
+					var r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+					r.setAttribute('x', String(x - run*moduleW));
+					r.setAttribute('y', String(topY));
+					r.setAttribute('width', String(run*moduleW));
+					r.setAttribute('height', String(barH));
+					r.setAttribute('fill', '#000000');
+					svg.appendChild(r);
+					run = 0;
+				}
+			}
+			x += moduleW;
+		}
+		if(run>0){
+			var r2 = document.createElementNS('http://www.w3.org/2000/svg','rect');
+			r2.setAttribute('x', String(x - run*moduleW));
+			r2.setAttribute('y', String(topY));
+			r2.setAttribute('width', String(run*moduleW));
+			r2.setAttribute('height', String(barH));
+			r2.setAttribute('fill', '#000000');
+			svg.appendChild(r2);
+		}
+
+		// text
+		var t = document.createElementNS('http://www.w3.org/2000/svg','text');
+		t.setAttribute('x', String(w/2));
+		t.setAttribute('y', String(topY + barH + 16));
+		t.setAttribute('text-anchor','middle');
+		t.setAttribute('font-family','monospace');
+		t.setAttribute('font-size','14');
+		t.textContent = ean;
+		svg.appendChild(t);
+	}
+
+	var svgs = root.querySelectorAll('.uni2fix-barcode[data-ean]');
+	for(var i=0;i<svgs.length;i++){
+		renderEAN13(svgs[i], svgs[i].getAttribute('data-ean'));
+	}
+
+	// Print only order area (no header/footer/menu). Uses a clean popup print-frame.
+	window.uni2fixPrint = function(){
+		var node = document.getElementById('account-order');
+		if(!node){ window.print(); return; }
+
+		var w = window.open('', 'uni2fix_print', 'width=1100,height=800');
+		if(!w){ window.print(); return; }
+
+		var doc = w.document;
+		var styles = '';
+
+		document.querySelectorAll('link[rel="stylesheet"], style').forEach(function(el){
+			styles += el.outerHTML;
+		});
+
+		doc.open();
+		doc.write('<!doctype html><html><head><meta charset="utf-8">');
+		doc.write('<meta name="viewport" content="width=device-width, initial-scale=1">');
+		doc.write('<title>Order #{{ order_id }}</title>');
+		doc.write(styles);
+
+		doc.write('<style>@page{margin:12mm} body{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important} #column-left,#column-right,.uni2fix-hero__actions,#uni2fix-toast,.breadcrumb,#uni2fixImgModal{display:none !important} #content{width:100% !important} .uni2fix-card{box-shadow:none !important;border:1px solid #ddd !important} .uni2fix-order:before{display:none !important} .uni2fix-table{min-width:auto !important}</style>');
+		doc.write('</head><body>');
+		doc.write(node.outerHTML);
+		doc.write('</body></html>');
+		doc.close();
+
+		w.focus();
+		setTimeout(function(){
+			w.print();
+			w.close();
+		}, 250);
+	};
+})();
+</script>
+
+{{ footer }}
