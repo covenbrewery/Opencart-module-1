@@ -2,59 +2,33 @@
 <modification>
   <name>Smart customer filter (name/phone/email/custom fields) for Order List - FIX</name>
   <code>smart_customer_filter_order_list_fix</code>
-  <version>1.1.0</version>
+  <version>1.2.0</version>
   <author>ChatGPT</author>
 
-  <!-- ===================== -->
-  <!-- 1) Order List UI       -->
-  <!-- ===================== -->
   <file path="admin/view/template/sale/order_list.twig">
-    <!-- Replace label with label + mode radios (single-line anchor) -->
     <operation>
       <search><![CDATA[<label class="control-label" for="input-customer">{{ entry_customer }}</label>]]></search>
       <add position="replace"><![CDATA[<label class="control-label ocx-customer-filter__label" for="input-customer">{{ entry_customer }}</label>
 <div class="ocx-customer-filter__modes" data-ocx-customer-modes>
-  <label class="ocx-customer-filter__mode">
-    <input type="radio" name="ocx_customer_mode" value="name" checked="checked" />
-    <span>{{ entry_customer }}</span>
-  </label>
-  <label class="ocx-customer-filter__mode">
-    <input type="radio" name="ocx_customer_mode" value="telephone" />
-    <span>Телефон</span>
-  </label>
-  <label class="ocx-customer-filter__mode">
-    <input type="radio" name="ocx_customer_mode" value="email" />
-    <span>Email</span>
-  </label>
-  <label class="ocx-customer-filter__mode">
-    <input type="radio" name="ocx_customer_mode" value="inn" />
-    <span>ИНН</span>
-  </label>
-  <label class="ocx-customer-filter__mode">
-    <input type="radio" name="ocx_customer_mode" value="business" />
-    <span>Бизнес</span>
-  </label>
-  <label class="ocx-customer-filter__mode">
-    <input type="radio" name="ocx_customer_mode" value="legal" />
-    <span>Юр.лицо</span>
-  </label>
+  <label class="ocx-customer-filter__mode"><input type="radio" name="ocx_customer_mode" value="name" checked="checked" /><span>Имя / Юр.лицо</span></label>
+  <label class="ocx-customer-filter__mode"><input type="radio" name="ocx_customer_mode" value="telephone" /><span>Телефон</span></label>
+  <label class="ocx-customer-filter__mode"><input type="radio" name="ocx_customer_mode" value="email" /><span>Email</span></label>
+  <label class="ocx-customer-filter__mode"><input type="radio" name="ocx_customer_mode" value="inn" /><span>ИНН</span></label>
+  <label class="ocx-customer-filter__mode"><input type="radio" name="ocx_customer_mode" value="business" /><span>Бизнес</span></label>
+  <label class="ocx-customer-filter__mode"><input type="radio" name="ocx_customer_mode" value="legal" /><span>Юр.лицо (строка)</span></label>
 </div>]]></add>
     </operation>
 
-    <!-- Replace input to disable browser autocomplete, and DO NOT add ul.dropdown-menu (to avoid duplicates) -->
     <operation>
       <search><![CDATA[<input type="text" name="filter_customer" value="{{ filter_customer }}" placeholder="{{ entry_customer }}" id="input-customer" class="form-control" />]]></search>
-      <add position="replace"><![CDATA[<div class="ocx-customer-filter__input">
-  <input type="text" name="filter_customer" value="{{ filter_customer }}" placeholder="{{ entry_customer }}" id="input-customer" class="form-control" autocomplete="off" />
-</div>]]></add>
+      <add position="replace"><![CDATA[<div class="ocx-customer-filter__input"><input type="text" name="filter_customer" value="{{ filter_customer }}" placeholder="{{ entry_customer }}" id="input-customer" class="form-control" autocomplete="off" /></div>]]></add>
     </operation>
 
-    <!-- Add helper JS + mode persistence BEFORE the existing autocomplete init (single-line anchor) -->
     <operation>
       <search><![CDATA[$('input[name='filter_customer']').autocomplete({]]></search>
       <add position="before"><![CDATA[
 (function(){
-  var $input = $('input[name='filter_customer']');
+  var $input = $('input[name=\'filter_customer\']');
 
   function ocxGetUrlParam(name){
     var s = window.location.search || '';
@@ -67,20 +41,10 @@
     }
     return '';
   }
-  function ocxHtmlDecode(str){
-    return $('<textarea/>').html(str || '').text();
-  }
-  function ocxEscapeHtml(s){
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  }
-  function ocxDigitsOnly(s){
-    return String(s || '').replace(/\D+/g,'');
-  }
-  function ocxLast10Digits(s){
-    var d = ocxDigitsOnly(s);
-    if (d.length > 10) d = d.slice(-10);
-    return d;
-  }
+  function ocxHtmlDecode(str){ return $('<textarea/>').html(str || '').text(); }
+  function ocxEscapeHtml(s){ return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;'); }
+  function ocxDigitsOnly(s){ return String(s || '').replace(/\D+/g,''); }
+  function ocxLast10Digits(s){ var d = ocxDigitsOnly(s); if (d.length > 10) d = d.slice(-10); return d; }
   function ocxHighlightText(text, term){
     text = String(text || '');
     term = String(term || '');
@@ -93,33 +57,21 @@
     formatted = String(formatted || '');
     needleDigits = String(needleDigits || '');
     if (!needleDigits) return ocxEscapeHtml(formatted);
-
     var digits = [];
     var pos = [];
     for (var i=0;i<formatted.length;i++){
       var ch = formatted.charAt(i);
-      if (ch >= '0' && ch <= '9'){
-        digits.push(ch);
-        pos.push(i);
-      }
+      if (ch >= '0' && ch <= '9'){ digits.push(ch); pos.push(i); }
     }
     var hay = digits.join('');
     var idx = hay.indexOf(needleDigits);
     if (idx === -1) return ocxEscapeHtml(formatted);
-
     var startPos = pos[idx];
     var endPos = pos[idx + needleDigits.length - 1] + 1;
-
     return ocxEscapeHtml(formatted.slice(0, startPos)) + '<u>' + ocxEscapeHtml(formatted.slice(startPos, endPos)) + '</u>' + ocxEscapeHtml(formatted.slice(endPos));
   }
-
-  function ocxGetMode(){
-    var $r = $('input[name="ocx_customer_mode"]:checked');
-    return $r.length ? $r.val() : 'name';
-  }
-  function ocxSetMode(mode){
-    $('input[name="ocx_customer_mode"][value="'+mode+'"]').prop('checked', true);
-  }
+  function ocxGetMode(){ var $r = $('input[name="ocx_customer_mode"]:checked'); return $r.length ? $r.val() : 'name'; }
+  function ocxSetMode(mode){ $('input[name="ocx_customer_mode"][value="'+mode+'"]').prop('checked', true); }
   function ocxSetPlaceholder(){
     var mode = ocxGetMode();
     var ph = '{{ entry_customer }}';
@@ -131,69 +83,40 @@
     $input.attr('placeholder', ph);
   }
 
-  // restore mode from URL or localStorage
   var urlMode = ocxGetUrlParam('ocx_mode');
   var storedMode = '';
   try { storedMode = localStorage.getItem('ocx_customer_mode') || ''; } catch(e){}
-  var initMode = urlMode || storedMode || 'name';
-  ocxSetMode(initMode);
+  ocxSetMode(urlMode || storedMode || 'name');
   ocxSetPlaceholder();
 
   $(document).on('change', 'input[name="ocx_customer_mode"]', function(){
     var m = ocxGetMode();
     try { localStorage.setItem('ocx_customer_mode', m); } catch(e){}
     ocxSetPlaceholder();
-    // refresh suggestions if already typed
-    if ($input.val()) $input.trigger('keyup');
+    $input.trigger('focus').trigger('keyup');
   });
 
-  // Override filter button click: keep mode in URL, and for non-name resolve to customer name first
   $(function(){
     $('#button-filter').off('click').on('click', function(){
       var mode = ocxGetMode();
-
       function go(){
         var url = '';
-        var filter_order_id = $('input[name=\'filter_order_id\']').val();
-        if (filter_order_id) url += '&filter_order_id=' + encodeURIComponent(filter_order_id);
-
-        var filter_customer = $('input[name=\'filter_customer\']').val();
-        if (filter_customer) url += '&filter_customer=' + encodeURIComponent(filter_customer);
-
-        var filter_order_status_id = $('select[name=\'filter_order_status_id\']').val();
-        if (filter_order_status_id !== '') url += '&filter_order_status_id=' + encodeURIComponent(filter_order_status_id);
-
-        var filter_total = $('input[name=\'filter_total\']').val();
-        if (filter_total) url += '&filter_total=' + encodeURIComponent(filter_total);
-
-        var filter_date_added = $('input[name=\'filter_date_added\']').val();
-        if (filter_date_added) url += '&filter_date_added=' + encodeURIComponent(filter_date_added);
-
-        var filter_date_modified = $('input[name=\'filter_date_modified\']').val();
-        if (filter_date_modified) url += '&filter_date_modified=' + encodeURIComponent(filter_date_modified);
-
-        // persist mode on reload
+        var filter_order_id = $('input[name=\'filter_order_id\']').val(); if (filter_order_id) url += '&filter_order_id=' + encodeURIComponent(filter_order_id);
+        var filter_customer = $('input[name=\'filter_customer\']').val(); if (filter_customer) url += '&filter_customer=' + encodeURIComponent(filter_customer);
+        var filter_order_status_id = $('select[name=\'filter_order_status_id\']').val(); if (filter_order_status_id !== '') url += '&filter_order_status_id=' + encodeURIComponent(filter_order_status_id);
+        var filter_total = $('input[name=\'filter_total\']').val(); if (filter_total) url += '&filter_total=' + encodeURIComponent(filter_total);
+        var filter_date_added = $('input[name=\'filter_date_added\']').val(); if (filter_date_added) url += '&filter_date_added=' + encodeURIComponent(filter_date_added);
+        var filter_date_modified = $('input[name=\'filter_date_modified\']').val(); if (filter_date_modified) url += '&filter_date_modified=' + encodeURIComponent(filter_date_modified);
         if (mode) url += '&ocx_mode=' + encodeURIComponent(mode);
-
         location = 'index.php?route=sale/order&user_token={{ user_token }}' + url;
       }
 
       var q = $.trim($input.val() || '');
-
       if (mode !== 'name' && q) {
-        // resolve typed value (phone/email/inn/...) -> customer name, then filter orders by name (core OC behavior)
         $.ajax({
           url: 'index.php?route=customer/customer/autocomplete&user_token={{ user_token }}&ocx_mode=' + encodeURIComponent(mode) + '&filter_name=' + encodeURIComponent(q),
           dataType: 'json',
-          success: function(json){
-            if (json && json.length) {
-              var first = json[0];
-              var nm = first['name_plain'] || first['name'] || '';
-              nm = ocxHtmlDecode(nm);
-              if (nm) $input.val(nm);
-            }
-            go();
-          },
+          success: function(json){ if (json && json.length) { var nm = ocxHtmlDecode(json[0]['name_plain'] || json[0]['name'] || ''); if (nm) $input.val(nm); } go(); },
           error: function(){ go(); }
         });
       } else {
@@ -202,292 +125,223 @@
     });
   });
 
-  // Expose helpers for use in autocomplete mapping below
-  window.ocxCustomerFilter = {
-    getMode: ocxGetMode,
-    htmlDecode: ocxHtmlDecode,
-    escape: ocxEscapeHtml,
-    digits: ocxDigitsOnly,
-    last10: ocxLast10Digits,
-    hiText: ocxHighlightText,
-    hiPhone: ocxUnderlineDigitsInFormatted
-  };
+  window.ocxCustomerFilter = { getMode: ocxGetMode, htmlDecode: ocxHtmlDecode, escape: ocxEscapeHtml, digits: ocxDigitsOnly, last10: ocxLast10Digits, hiText: ocxHighlightText, hiPhone: ocxUnderlineDigitsInFormatted };
 })();
 ]]></add>
     </operation>
 
-    <!-- Patch autocomplete AJAX URL to include ocx_mode -->
     <operation>
       <search><![CDATA[url: 'index.php?route=customer/customer/autocomplete&user_token={{ user_token }}&filter_name=' +  encodeURIComponent(request),]]></search>
       <add position="replace"><![CDATA[url: 'index.php?route=customer/customer/autocomplete&user_token={{ user_token }}&ocx_mode=' + encodeURIComponent(window.ocxCustomerFilter.getMode()) + '&filter_name=' +  encodeURIComponent(request),]]></add>
     </operation>
 
-    <!-- Prevent empty queries (and too-short phone/email) -->
     <operation>
       <search><![CDATA['source': function(request, response) {]]></search>
       <add position="after"><![CDATA[
-		var ocx_mode = window.ocxCustomerFilter.getMode();
-		var ocx_q = String(request || '').trim();
-		if (!ocx_q) { response([]); return; }
-		if (ocx_mode === 'telephone') {
-			var ocx_d = window.ocxCustomerFilter.digits(ocx_q);
-			if (ocx_d.length < 3) { response([]); return; }
-		} else {
-			if (ocx_q.length < 2) { response([]); return; }
-		}
+    var ocx_mode = window.ocxCustomerFilter.getMode();
+    var ocx_q = String(request || '').trim();
+    if (ocx_mode === 'name' && !ocx_q) { response([]); return; }
 ]]></add>
     </operation>
 
-    <!-- Enhance JSON mapping to show 2-line rich label + underline match -->
     <operation>
       <search><![CDATA[success: function(json) {]]></search>
       <add position="after"><![CDATA[
-				var ocx_mode = window.ocxCustomerFilter.getMode();
-				var ocx_term = String(request || '');
-				var ocx_term10 = window.ocxCustomerFilter.last10(ocx_term);
+        var ocx_mode = window.ocxCustomerFilter.getMode();
+        var ocx_term = String(request || '');
+        var ocx_term10 = window.ocxCustomerFilter.last10(ocx_term);
 ]]></add>
     </operation>
 
     <operation>
       <search><![CDATA[label: item['name'],]]></search>
-      <add position="replace"><![CDATA[
-						label: (function(){
-							var name = window.ocxCustomerFilter.htmlDecode(item['name'] || '');
-							var tel  = window.ocxCustomerFilter.htmlDecode(item['telephone'] || '');
-							var eml  = window.ocxCustomerFilter.htmlDecode(item['email'] || '');
-							var inn  = window.ocxCustomerFilter.htmlDecode(item['cf_inn'] || '');
-							var biz  = window.ocxCustomerFilter.htmlDecode(item['cf_business'] || '');
-							var leg  = window.ocxCustomerFilter.htmlDecode(item['cf_legal'] || '');
-
-							var title = name;
-							var sub = '';
-
-							if (ocx_mode === 'telephone') sub = tel ? ('☎ ' + tel) : '';
-							else if (ocx_mode === 'email') sub = eml ? ('✉ ' + eml) : '';
-							else if (ocx_mode === 'inn') sub = inn ? ('ИНН: ' + inn) : '';
-							else if (ocx_mode === 'business') sub = biz ? (biz) : '';
-							else if (ocx_mode === 'legal') sub = leg ? (leg) : '';
-
-							var titleHtml = (ocx_mode === 'name') ? window.ocxCustomerFilter.hiText(title, ocx_term) : window.ocxCustomerFilter.escape(title);
-							if (ocx_mode === 'legal' || ocx_mode === 'business') titleHtml = window.ocxCustomerFilter.escape(title);
-
-							var subHtml = '';
-							if (sub) {
-								if (ocx_mode === 'telephone') {
-									subHtml = window.ocxCustomerFilter.hiPhone(sub, ocx_term10);
-								} else {
-									subHtml = window.ocxCustomerFilter.hiText(sub, ocx_term);
-								}
-							}
-
-							return '<div class="ocx-ac-item">' +
-								'<div class="ocx-ac-title">' + titleHtml + '</div>' +
-								(subHtml ? '<div class="ocx-ac-sub">' + subHtml + '</div>' : '') +
-								'</div>';
-						})(),
-]]></add>
+      <add position="replace"><![CDATA[label: (function(){
+            var name = window.ocxCustomerFilter.htmlDecode(item['name'] || '');
+            var tel  = window.ocxCustomerFilter.htmlDecode(item['telephone'] || '');
+            var eml  = window.ocxCustomerFilter.htmlDecode(item['email'] || '');
+            var inn  = window.ocxCustomerFilter.htmlDecode(item['cf_inn'] || '');
+            var biz  = window.ocxCustomerFilter.htmlDecode(item['cf_business'] || '');
+            var leg  = window.ocxCustomerFilter.htmlDecode(item['cf_legal'] || '');
+            var title = name;
+            var sub = '';
+            if (ocx_mode === 'telephone') sub = tel ? ('☎ ' + tel) : '';
+            else if (ocx_mode === 'email') sub = eml ? ('✉ ' + eml) : '';
+            else if (ocx_mode === 'inn') sub = inn ? ('ИНН: ' + inn) : '';
+            else if (ocx_mode === 'business') sub = biz;
+            else if (ocx_mode === 'legal') sub = leg;
+            var titleHtml = (ocx_mode === 'name') ? window.ocxCustomerFilter.hiText(title, ocx_term) : window.ocxCustomerFilter.escape(title);
+            var subHtml = '';
+            if (sub) {
+              if (ocx_mode === 'telephone') subHtml = window.ocxCustomerFilter.hiPhone(sub, ocx_term10);
+              else subHtml = window.ocxCustomerFilter.hiText(sub, ocx_term);
+            }
+            return '<div class="ocx-ac-item"><div class="ocx-ac-title">' + titleHtml + '</div>' + (subHtml ? '<div class="ocx-ac-sub">' + subHtml + '</div>' : '') + '</div>';
+          })(),]]></add>
     </operation>
 
     <operation>
       <search><![CDATA[value: item['customer_id']]]></search>
-      <add position="replace"><![CDATA[
-						value: item['customer_id'],
-						name_plain: (function(){ return window.ocxCustomerFilter.htmlDecode(item['name'] || ''); })()
-]]></add>
+      <add position="replace"><![CDATA[value: item['customer_id'], name_plain: (function(){ return window.ocxCustomerFilter.htmlDecode(item['name_plain'] || item['name'] || ''); })()]]></add>
     </operation>
 
-    <!-- Fix select to set plain name -->
     <operation>
       <search><![CDATA[$('input[name='filter_customer']').val(item['label']);]]></search>
-      <add position="replace"><![CDATA[$('input[name='filter_customer']').val(item['name_plain'] || '');]]></add>
+      <add position="replace"><![CDATA[var plain = item['name_plain'] || ''; $('input[name='filter_customer']').val(plain); $('#input-customer').siblings('ul.dropdown-menu').hide();]]></add>
     </operation>
   </file>
 
-  <!-- ===================== -->
-  <!-- 2) Customer autocomplete controller -->
-  <!-- ===================== -->
   <file path="admin/controller/customer/customer.php">
-    <!-- Detect mode right after filter_name gate (tries both common anchors) -->
     <operation>
       <search><![CDATA[if (isset($this->request->get['filter_name'])) {]]></search>
       <add position="after"><![CDATA[
-			$ocx_mode = 'name';
-			if (isset($this->request->get['ocx_mode']) && $this->request->get['ocx_mode']) {
-				$ocx_mode = $this->request->get['ocx_mode'];
-			}
+      $ocx_mode = 'name';
+      if (isset($this->request->get['ocx_mode']) && $this->request->get['ocx_mode']) {
+        $ocx_mode = $this->request->get['ocx_mode'];
+      }
 
-			$ocx_raw = html_entity_decode((string)$this->request->get['filter_name'], ENT_QUOTES, 'UTF-8');
+      $ocx_source = '';
+      if (isset($this->request->get['filter_name'])) {
+        $ocx_source = $this->request->get['filter_name'];
+      } elseif (isset($this->request->get['filter_customer'])) {
+        $ocx_source = $this->request->get['filter_customer'];
+      }
 
-			$ocx_phone10 = '';
-			if ($ocx_mode == 'telephone') {
-				$ocx_digits = preg_replace('/\D+/', '', $ocx_raw);
-				if (strlen($ocx_digits) > 10) {
-					$ocx_phone10 = substr($ocx_digits, -10);
-				} else {
-					$ocx_phone10 = $ocx_digits;
-				}
-			}
+      $ocx_raw = html_entity_decode((string)$ocx_source, ENT_QUOTES, 'UTF-8');
 
-			$ocx_json = '';
-			$ocx_json_enc = json_encode($ocx_raw);
-			if ($ocx_json_enc !== false && strlen($ocx_json_enc) >= 2) {
-				$ocx_json = substr($ocx_json_enc, 1, -1);
-			}
+      $ocx_phone10 = '';
+      if ($ocx_mode == 'telephone') {
+        $ocx_digits = preg_replace('/\D+/', '', $ocx_raw);
+        if (strlen($ocx_digits) > 10) {
+          $ocx_phone10 = substr($ocx_digits, -10);
+        } else {
+          $ocx_phone10 = $ocx_digits;
+        }
+      }
+
+      $ocx_json = '';
+      $ocx_json_enc = json_encode($ocx_raw);
+      if ($ocx_json_enc !== false && strlen($ocx_json_enc) >= 2) {
+        $ocx_json = substr($ocx_json_enc, 1, -1);
+      }
 ]]></add>
     </operation>
 
-    <!-- Some builds use filter_customer instead of filter_name in the gate -->
-    <operation>
-      <search><![CDATA[if (isset($this->request->get['filter_customer'])) {]]></search>
-      <add position="after"><![CDATA[
-			$ocx_mode = 'name';
-			if (isset($this->request->get['ocx_mode']) && $this->request->get['ocx_mode']) {
-				$ocx_mode = $this->request->get['ocx_mode'];
-			}
-
-			$ocx_raw = html_entity_decode((string)$this->request->get['filter_name'], ENT_QUOTES, 'UTF-8');
-
-			$ocx_phone10 = '';
-			if ($ocx_mode == 'telephone') {
-				$ocx_digits = preg_replace('/\D+/', '', $ocx_raw);
-				if (strlen($ocx_digits) > 10) {
-					$ocx_phone10 = substr($ocx_digits, -10);
-				} else {
-					$ocx_phone10 = $ocx_digits;
-				}
-			}
-
-			$ocx_json = '';
-			$ocx_json_enc = json_encode($ocx_raw);
-			if ($ocx_json_enc !== false && strlen($ocx_json_enc) >= 2) {
-				$ocx_json = substr($ocx_json_enc, 1, -1);
-			}
-]]></add>
-    </operation>
-
-    <!-- Ensure filter_name is decoded (fix &quot; etc) -->
     <operation>
       <search><![CDATA[$filter_name = $this->request->get['filter_name'];]]></search>
       <add position="replace"><![CDATA[$filter_name = $ocx_raw;]]></add>
     </operation>
 
-    <!-- Add ocx keys into filter_data array (works for both multi-line and one-line arrays) -->
     <operation>
       <search><![CDATA[$filter_data = array(]]></search>
       <add position="after"><![CDATA[
-				'filter_ocx_mode'  => $ocx_mode,
-				'filter_ocx_raw'   => $ocx_raw,
-				'filter_ocx_json'  => $ocx_json,
-				'filter_ocx_phone' => $ocx_phone10,
+        'filter_ocx_mode'  => $ocx_mode,
+        'filter_ocx_raw'   => $ocx_raw,
+        'filter_ocx_json'  => $ocx_json,
+        'filter_ocx_phone' => $ocx_phone10,
 ]]></add>
     </operation>
 
-    <!-- Add custom-field values to JSON output right after telephone (common anchor) -->
-    <operation>
-      <search><![CDATA['telephone' => $result['telephone'],]]></search>
-      <add position="after"><![CDATA[
-					'email' => isset($result['email']) ? $result['email'] : '',
-					'name_plain' => strip_tags(html_entity_decode($result['name'], ENT_QUOTES, 'UTF-8')),
-					'cf_inn' => (isset($result['ocx_cf_inn']) ? $result['ocx_cf_inn'] : ''),
-					'cf_business' => (isset($result['ocx_cf_business']) ? $result['ocx_cf_business'] : ''),
-					'cf_legal' => (isset($result['ocx_cf_legal']) ? $result['ocx_cf_legal'] : ''),
-]]></add>
-    </operation>
-
-    <!-- If controller doesn't decode custom fields itself, decode from custom_field into ocx_cf_* before loop returns -->
     <operation>
       <search><![CDATA[foreach ($results as $result) {]]></search>
       <add position="after"><![CDATA[
-				$ocx_cf_inn = '';
-				$ocx_cf_business = '';
-				$ocx_cf_legal = '';
+        $ocx_cf_inn = '';
+        $ocx_cf_business = '';
+        $ocx_cf_legal = '';
 
-				if (isset($result['custom_field']) && $result['custom_field']) {
-					$ocx_cf = json_decode($result['custom_field'], true);
-					if (is_array($ocx_cf)) {
-						if (isset($ocx_cf['3'])) $ocx_cf_inn = $ocx_cf['3'];
-						if (isset($ocx_cf['5'])) $ocx_cf_business = $ocx_cf['5'];
-						if (isset($ocx_cf['9'])) $ocx_cf_legal = $ocx_cf['9'];
-					}
-				}
+        if (isset($result['custom_field']) && $result['custom_field']) {
+          $ocx_cf = json_decode($result['custom_field'], true);
+          if (is_array($ocx_cf)) {
+            if (isset($ocx_cf['3'])) $ocx_cf_inn = html_entity_decode($ocx_cf['3'], ENT_QUOTES, 'UTF-8');
+            if (isset($ocx_cf['5'])) $ocx_cf_business = html_entity_decode($ocx_cf['5'], ENT_QUOTES, 'UTF-8');
+            if (isset($ocx_cf['9'])) $ocx_cf_legal = html_entity_decode($ocx_cf['9'], ENT_QUOTES, 'UTF-8');
+          }
+        }
 
-				$result['ocx_cf_inn'] = $ocx_cf_inn;
-				$result['ocx_cf_business'] = $ocx_cf_business;
-				$result['ocx_cf_legal'] = $ocx_cf_legal;
+        $result['ocx_cf_inn'] = $ocx_cf_inn;
+        $result['ocx_cf_business'] = $ocx_cf_business;
+        $result['ocx_cf_legal'] = $ocx_cf_legal;
+]]></add>
+    </operation>
+
+    <operation>
+      <search><![CDATA['telephone' => $result['telephone'],]]></search>
+      <add position="after"><![CDATA[
+          'email' => isset($result['email']) ? $result['email'] : '',
+          'name_plain' => strip_tags(html_entity_decode($result['name'], ENT_QUOTES, 'UTF-8')),
+          'cf_inn' => (isset($result['ocx_cf_inn']) ? $result['ocx_cf_inn'] : ''),
+          'cf_business' => (isset($result['ocx_cf_business']) ? $result['ocx_cf_business'] : ''),
+          'cf_legal' => (isset($result['ocx_cf_legal']) ? $result['ocx_cf_legal'] : ''),
 ]]></add>
     </operation>
   </file>
 
-  <!-- ===================== -->
-  <!-- 3) Customer model (mode-aware search) -->
-  <!-- ===================== -->
   <file path="admin/model/customer/customer.php">
-    <!-- Ensure custom_field is selected (common anchor with email+telephone) -->
     <operation>
       <search><![CDATA[c.email, c.telephone]]></search>
       <add position="replace"><![CDATA[c.email, c.telephone, c.custom_field]]></add>
     </operation>
 
-    <!-- Mode-aware filter injection (replace the start of the filter_name block) -->
     <operation>
       <search><![CDATA[if (!empty($data['filter_name'])) {]]></search>
       <add position="replace"><![CDATA[
-		if (isset($data['filter_ocx_mode']) && $data['filter_ocx_mode'] && $data['filter_ocx_mode'] != 'name') {
-			$ocx_mode = $data['filter_ocx_mode'];
-			$ocx_raw  = isset($data['filter_ocx_raw']) ? $data['filter_ocx_raw'] : '';
-			$ocx_json = isset($data['filter_ocx_json']) ? $data['filter_ocx_json'] : '';
-			$ocx_phone= isset($data['filter_ocx_phone']) ? $data['filter_ocx_phone'] : '';
+    if (isset($data['filter_ocx_mode']) && $data['filter_ocx_mode'] && $data['filter_ocx_mode'] != 'name') {
+      $ocx_mode = $data['filter_ocx_mode'];
+      $ocx_raw  = isset($data['filter_ocx_raw']) ? $data['filter_ocx_raw'] : '';
+      $ocx_json = isset($data['filter_ocx_json']) ? $data['filter_ocx_json'] : '';
+      $ocx_phone = isset($data['filter_ocx_phone']) ? $data['filter_ocx_phone'] : '';
 
-			if ($ocx_mode == 'telephone' && $ocx_phone !== '') {
-				$clean = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(c.telephone,'+',''),' ',''),'-',''),'(',''),')',''),'.',''),'/',''),',',''),';','')";
-				if (strlen($ocx_phone) >= 10) {
-					$sql .= " AND RIGHT(" . $clean . ", 10) LIKE '%" . $this->db->escape($ocx_phone) . "%'";
-				} else {
-					$sql .= " AND " . $clean . " LIKE '%" . $this->db->escape($ocx_phone) . "%'";
-				}
-			} elseif ($ocx_mode == 'email' && $ocx_raw !== '') {
-				$sql .= " AND LCASE(c.email) LIKE '%" . $this->db->escape(utf8_strtolower($ocx_raw)) . "%'";
-			} elseif (($ocx_mode == 'inn' || $ocx_mode == 'business' || $ocx_mode == 'legal') && $ocx_raw !== '') {
-				$key = ($ocx_mode == 'inn') ? '3' : (($ocx_mode == 'business') ? '5' : '9');
+      if ($ocx_mode == 'telephone') {
+        $clean = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(c.telephone,'+',''),' ',''),'-',''),'(',''),')',''),'.',''),'/',''),',',''),';','')";
+        if ($ocx_phone !== '') {
+          if (strlen($ocx_phone) >= 10) {
+            $sql .= " AND RIGHT(" . $clean . ", 10) LIKE '%" . $this->db->escape($ocx_phone) . "%'";
+          } else {
+            $sql .= " AND (" . $clean . " LIKE '%" . $this->db->escape($ocx_phone) . "%' OR RIGHT(" . $clean . ", 10) LIKE '%" . $this->db->escape($ocx_phone) . "%')";
+          }
+        }
+      } elseif ($ocx_mode == 'email' && $ocx_raw !== '') {
+        $sql .= " AND LCASE(c.email) LIKE '%" . $this->db->escape(utf8_strtolower($ocx_raw)) . "%'";
+      } elseif (($ocx_mode == 'inn' || $ocx_mode == 'business' || $ocx_mode == 'legal') && $ocx_raw !== '') {
+        $key = ($ocx_mode == 'inn') ? '3' : (($ocx_mode == 'business') ? '5' : '9');
+        if ($ocx_mode == 'inn') {
+          $ocx_raw = preg_replace('/\D+/', '', $ocx_raw);
+          $ocx_json = $ocx_raw;
+        }
 
-				// INN is safer as digits only
-				if ($ocx_mode == 'inn') {
-					$ocx_raw = preg_replace('/\D+/', '', $ocx_raw);
-					$ocx_json = $ocx_raw;
-				}
+        $field_expr = "JSON_UNQUOTE(JSON_EXTRACT(c.custom_field, '$." . $this->db->escape($key) . "'))";
+        $sql .= " AND (LCASE(" . $field_expr . ") LIKE '%" . $this->db->escape(utf8_strtolower($ocx_raw)) . "%'";
 
-				$like_raw  = "%\"" . $this->db->escape($key) . "\":\"%" . $this->db->escape($ocx_raw) . "%";
-				$sql .= " AND (c.custom_field LIKE '" . $like_raw . "'";
-				if ($ocx_json !== '' && $ocx_json !== $ocx_raw) {
-					$like_json = "%\"" . $this->db->escape($key) . "\":\"%" . $this->db->escape($ocx_json) . "%";
-					$sql .= " OR c.custom_field LIKE '" . $like_json . "'";
-				}
-				$sql .= ")";
-			} else {
-				// fallback to name
-				$implode = array();
-				$parts = explode(' ', trim($ocx_raw));
-				foreach ($parts as $part) {
-					if ($part) {
-						$implode[] = "LCASE(CONCAT(c.firstname, ' ', c.lastname)) LIKE '%" . $this->db->escape(utf8_strtolower($part)) . "%'";
-					}
-				}
-				if ($implode) {
-					$sql .= " AND (" . implode(" AND ", $implode) . ")";
-				}
-			}
+        $like_raw = "%\\\"" . $this->db->escape($key) . "\\\":\\\"%" . $this->db->escape($ocx_raw) . "%";
+        $sql .= " OR c.custom_field LIKE '" . $like_raw . "'";
 
-		} elseif (!empty($data['filter_name'])) {
+        if ($ocx_json !== '' && $ocx_json !== $ocx_raw) {
+          $like_json = "%\\\"" . $this->db->escape($key) . "\\\":\\\"%" . $this->db->escape($ocx_json) . "%";
+          $sql .= " OR c.custom_field LIKE '" . $like_json . "'";
+        }
+
+        $sql .= ")";
+      } else {
+        $parts = explode(' ', trim($ocx_raw));
+        $implode = array();
+        foreach ($parts as $part) {
+          if ($part) {
+            $implode[] = "LCASE(CONCAT(c.firstname, ' ', c.lastname)) LIKE '%" . $this->db->escape(utf8_strtolower($part)) . "%'";
+          }
+        }
+        if ($implode) {
+          $sql .= " AND (" . implode(" AND ", $implode) . ")";
+        }
+      }
+
+    } elseif (!empty($data['filter_name'])) {
 ]]></add>
     </operation>
 
-    <!-- Close the injected conditional right before the next standard block -->
     <operation>
       <search><![CDATA[if (!empty($data['filter_email'])) {]]></search>
       <add position="before"><![CDATA[
-		}
+    }
 ]]></add>
     </operation>
   </file>
-
 </modification>
